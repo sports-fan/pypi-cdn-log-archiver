@@ -1,14 +1,11 @@
 import ConfigParser
 import mimetypes
 
-import fs.errors
-import fs.s3fs
-import fs.wrapfs.readonlyfs
-
+from boto.exception import S3ResponseError
+from boto.s3.connection import S3Connection
 from pyramid.config import Configurator
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.response import Response, FileIter
-
 from tomb_routes import simple_route
 
 
@@ -20,9 +17,11 @@ def my_route(request, path):
     if path.endswith("/"):
         path += "index.html"
 
+    key = request.s3.get_key(path, validate=False)
+
     try:
-        data = request.fs.getcontents(path, mode="rb")
-    except fs.errors.ResourceNotFoundError:
+        data = key.read()
+    except S3ResponseError:
         return HTTPNotFound()
 
     content_type, content_encoding = mimetypes.guess_type(path)
@@ -33,21 +32,20 @@ def my_route(request, path):
     )
 
 
+def _get_bucket(request):
+    conn = request.registry.s3_conn
+    bucket_name = parser.get("docs-proxy", "aws_bucket")
+    bucket = conn.get_bucket(bucket_name, validate=False)
+    return bucket
+
+
 parser = ConfigParser.RawConfigParser()
 parser.read("config.ini")
 
 config = Configurator()
-config.registry.fs = fs.wrapfs.readonlyfs.ReadOnlyFS(
-    fs.s3fs.S3FS(
-        bucket=parser.get("docs-proxy", "aws_bucket"),
-        aws_access_key=parser.get("docs-proxy", "aws_access_key_id"),
-        aws_secret_key=parser.get("docs-proxy", "aws_secret_access_key"),
-    ),
-)
-config.add_request_method(
-    lambda request: request.registry.fs,
-    name="fs", reify=True,
-)
+config.registry.s3_conn = S3Connection(anon=True)
+config.registry.config_parser = parser
+config.add_request_method(_get_bucket, name="s3", reify=True)
 config.scan()
 
 application = config.make_wsgi_app()
