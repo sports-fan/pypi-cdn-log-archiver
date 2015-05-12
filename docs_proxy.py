@@ -21,14 +21,14 @@ def my_route(request, path):
         key = request.s3.get_key(path)
     except S3ResponseError:
         # Try the same request, but with a /index.html added onto it.
-        key = request.s3.get_key(path + "/index.html")
-        return HTTPMovedPermanently("/" + path + "/")
+        try:
+            key = request.s3.get_key(path + "/index.html")
+        except S3ResponseError:
+            return HTTPNotFound()
+        else:
+            return HTTPMovedPermanently("/" + path + "/")
 
-    try:
-        data = key.read()
-    except S3ResponseError:
-        return HTTPNotFound()
-
+    data = key.read()
     content_type, content_encoding = mimetypes.guess_type(path)
 
     return Response(data,
