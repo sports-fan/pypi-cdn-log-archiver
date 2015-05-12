@@ -4,7 +4,7 @@ import os
 from boto.exception import S3ResponseError
 from boto.s3.connection import S3Connection
 from pyramid.config import Configurator
-from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPMovedPermanently, HTTPNotFound
 from pyramid.response import Response, FileIter
 from tomb_routes import simple_route
 
@@ -17,7 +17,12 @@ def my_route(request, path):
     if path.endswith("/"):
         path += "index.html"
 
-    key = request.s3.get_key(path, validate=False)
+    try:
+        key = request.s3.get_key(path)
+    except S3ResponseError:
+        # Try the same request, but with a /index.html added onto it.
+        key = request.s3.get_key(path + "/index.html")
+        return HTTPMovedPermanently("/" + path + "/")
 
     try:
         data = key.read()
