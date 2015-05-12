@@ -1,0 +1,2 @@
+[docs-proxy]
+aws_bucket = pypi-docs-staging
