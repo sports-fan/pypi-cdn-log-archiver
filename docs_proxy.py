@@ -1,5 +1,5 @@
-import ConfigParser
 import mimetypes
+import os
 
 from boto.exception import S3ResponseError
 from boto.s3.connection import S3Connection
@@ -34,17 +34,13 @@ def my_route(request, path):
 
 def _get_bucket(request):
     conn = request.registry.s3_conn
-    bucket_name = parser.get("docs-proxy", "aws_bucket")
-    bucket = conn.get_bucket(bucket_name, validate=False)
+    bucket = conn.get_bucket(request.registry.s3_bucket, validate=False)
     return bucket
 
 
-parser = ConfigParser.RawConfigParser()
-parser.read("config.ini")
-
 config = Configurator()
 config.registry.s3_conn = S3Connection(anon=True)
-config.registry.config_parser = parser
+config.registry.s3_bucket = os.environ["DOCS_PROXY_BUCKET"]
 config.add_request_method(_get_bucket, name="s3", reify=True)
 config.scan()
 
