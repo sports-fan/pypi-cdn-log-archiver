@@ -24,5 +24,6 @@ setuptools.setup(
         "boto",
         "pyramid",
         "tomb_routes",
+        "gunicorn",
     ],
 )
