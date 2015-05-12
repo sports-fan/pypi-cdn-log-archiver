@@ -17,7 +17,7 @@ import setuptools
 
 setuptools.setup(
     name="pypi-docs-proxy",
-    version="1.1",
+    version="1.2",
     description="A Proxy for PyPI's Hosted Documentation",
     py_modules=["docs_proxy"],
     install_requires=[
