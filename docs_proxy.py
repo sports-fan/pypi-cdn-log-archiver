@@ -28,10 +28,11 @@ def my_route(request, path):
         else:
             return HTTPMovedPermanently("/" + path + "/")
 
-    data = key.read()
+    key.open_read()
     content_type, content_encoding = mimetypes.guess_type(path)
 
-    return Response(data,
+    return Response(
+        app_iter=key,
         content_type=content_type,
         content_encoding=content_encoding,
     )
